@@ -6,17 +6,35 @@ import { useRouter } from "next/navigation";
 
 type LoginError = { field?: "regNo" | "password" | "form"; message: string } | null;
 
-/** Infer role from the registration / staff number format.
- *  Students: YYYY/YYYY/<PROGRAM>/<DEPT>/<NNNN>   where PROGRAM ∈ {ND, MTI}
+/** Where each role lands after login. Add new roles here only. */
+const ROLE_HOME: Record<Role, string> = {
+  student: "/students",
+  lecturer: "/lecturers",
+  admin: "/admin",
+};
+
+/** Mock display name per role — replace with backend data later. */
+const MOCK_NAMES: Record<Role, string> = {
+  student: "Ifeoma (Student)",
+  lecturer: "Dr. Ada (Lecturer)",
+  admin: "Ifeoma (Admin)",
+};
+
+/** Infer role from the registration / staff / admin number format.
+ *  Students:  YYYY/YYYY/<ND|MTI>/<DEPT>/<NNNN>
  *  Lecturers: YYYY/YYYY/NUT/<NNN>
+ *  Admins:    YYYY/YYYY/ADMIN/<NNN>
  *  This is a stand-in for the backend lookup — keep the same function name
  *  so you can swap it for a fetch("/api/login") later.
  */
 function inferRole(regNo: string): Role | null {
-  const studentPattern = /^\d{4}\/\d{4}\/(ND|MTI)\/[A-Z]{2,4}\/\d{3,5}$/i;
+  const studentPattern  = /^\d{4}\/\d{4}\/(ND|MTI)\/[A-Z]{2,4}\/\d{3,5}$/i;
   const lecturerPattern = /^\d{4}\/\d{4}\/NUT\/\d{2,4}$/i;
-  if (studentPattern.test(regNo)) return "student";
+  const adminPattern    = /^\d{4}\/\d{4}\/ADMIN\/\d{2,4}$/i;
+
+  if (studentPattern.test(regNo))  return "student";
   if (lecturerPattern.test(regNo)) return "lecturer";
+  if (adminPattern.test(regNo))    return "admin";
   return null;
 }
 
@@ -50,7 +68,7 @@ export default function LoginPage() {
       setError({
         field: "regNo",
         message:
-          "Unrecognized number. Students use e.g. 2023/2024/ND/CS/1042. Lecturers use e.g. 1999/2000/NUT/204.",
+          "Unrecognized number. Students: 2023/2024/ND/CS/1042. Lecturers: 1999/2000/NUT/204. Admins: 2023/2024/ADMIN/101.",
       });
       return;
     }
@@ -58,12 +76,8 @@ export default function LoginPage() {
     setSubmitting(true);
     // Mock latency so the UI feels real; remove when backend is live.
     setTimeout(() => {
-      login({
-        id: trimmed,
-        name: role === "lecturer" ? "Dr. Ada (Lecturer)" : "Ifeoma (Student)",
-        role,
-      });
-      router.push(role === "lecturer" ? "/lecturers" : "/students");
+      login({ id: trimmed, name: MOCK_NAMES[role], role });
+      router.push(ROLE_HOME[role]);
       setSubmitting(false);
     }, 400);
   };
@@ -89,13 +103,13 @@ export default function LoginPage() {
         >
           <h2 className="font-display text-xl font-semibold">Sign in</h2>
           <p className="text-muted mt-1 text-sm">
-            Use your registration number (students) or staff number (lecturers).
+            Use your registration number (students), staff number (lecturers), or admin ID.
           </p>
 
           {/* Reg No */}
           <div className="mt-6">
             <label htmlFor="regNo" className="block text-sm font-medium">
-              Registration / Staff Number
+              Registration / Staff / Admin Number
             </label>
             <input
               id="regNo"
