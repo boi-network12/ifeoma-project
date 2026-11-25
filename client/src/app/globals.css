@@ -65,3 +65,8 @@ body {
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono), ui-monospace, monospace;
 }
+
+@media print {
+  section { break-inside: avoid; }
+  button { display: none; }
+}
